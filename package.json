@@ -1,0 +1,25 @@
+{
+  "name": "jesaquino-cst3145-cw2",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JesAquino/JesAquino-CST3145-CW2.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/JesAquino/JesAquino-CST3145-CW2/issues"
+  },
+  "homepage": "https://github.com/JesAquino/JesAquino-CST3145-CW2#readme",
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongodb": "^5.0.1"
+  }
+}
