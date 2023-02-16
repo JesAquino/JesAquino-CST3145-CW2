@@ -45,7 +45,7 @@ MongoClient.connect('mongodb+srv://Jesuael:Password1@cluster0.fpmtkba.mongodb.ne
 				});
 		});
 
-        // save lesson into collection
+        // POST for creating new lessons in lesson collection
 		app.post('/lessons', (req, res) => {
 			lessons
 				.insertOne(req.body)
@@ -63,7 +63,7 @@ MongoClient.connect('mongodb+srv://Jesuael:Password1@cluster0.fpmtkba.mongodb.ne
 				});
 		});
 
-		// udpate on lesson
+		// PUT to udpate lesson in the collection
 		app.put('/lessons', (req, res) => {
 			lessons
 				.findOneAndUpdate(
@@ -89,7 +89,7 @@ MongoClient.connect('mongodb+srv://Jesuael:Password1@cluster0.fpmtkba.mongodb.ne
 				});
 		});
 
-		// delete a lesson
+		// DELETE well to delete a lesson
 
 		app.delete('/lessons', (req, res) => {
 			lessons
@@ -98,7 +98,7 @@ MongoClient.connect('mongodb+srv://Jesuael:Password1@cluster0.fpmtkba.mongodb.ne
 					res.status(200).json({
 						success: true,
 					});
-				})
+				})  
 				.catch((error) => {
 					res.status(500).json({
 						success: false,
