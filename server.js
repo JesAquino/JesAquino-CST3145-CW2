@@ -24,9 +24,6 @@ MongoClient.connect('mongodb+srv://Jesuael:Password1@cluster0.fpmtkba.mongodb.ne
 	.then((client) => {
 		console.log('Connected to MongoDB server');
 
-		const db = client.db('lessondb');
-		const lessons = db.collection('lessons');
-        const orders = db.collection('orders');
 
 		app.use(cors());
 		app.use(express.json());
