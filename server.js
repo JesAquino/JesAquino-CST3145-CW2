@@ -1,39 +1,39 @@
-const express = require('express');
-
-const cors = require('cors');
-
-const dotenv = require('dotenv');
-
+var express = require("express");
+const cors = require("cors");
 const morgan = require("morgan");
-
-const path = require('path');
-
-const MongoClient = require('mongodb').MongoClient;
-
-const app = express();
-
-dotenv.config({
-	path: './config.env',
-});
-
-const uri = process.env.MONGO_URI;
-
-const port = 3000;
-
-MongoClient.connect('mongodb+srv://Jesuael:Password1@cluster0.fpmtkba.mongodb.net/lessons?retryWrites=true&w=majority')
-	.then((client) => {
-		console.log('Connected to MongoDB server');
+var path = require("path");
+var fs = require("fs");
 
 
-		app.use(cors());
-		app.use(express.json());
-        app.use(morgan("short"));
-        var fs = require("fs");
+let propertiesReader = require("properties-reader");
+let propertiesPath = path.resolve(__dirname, "conf/db.properties");
+let properties = propertiesReader(propertiesPath);
+let dbPprefix = properties.get("db.prefix");
+//URL-Encoding of User and PWD
+//for potential special characters
+let dbUsername = properties.get("db.user");
+let dbPwd = properties.get("db.pwd");
+let dbName = properties.get("db.dbName");
+let dbUrl = properties.get("db.dbUrl");
+let dbParams = properties.get("db.params");
+const uri = dbPprefix + dbUsername + ":" + dbPwd + dbUrl + dbParams;
 
-		const loggerPath = path.join(__dirname, 'logger');
-    var staticPath = path.resolve(__dirname, "static");
-    app.use("/images", express.static(staticPath));
+const { MongoClient, ServerApiVersion } = require("mongodb");
+const client = new MongoClient(uri, { serverApi: ServerApiVersion.v1 });
+let db = client.db(dbName);
+// db.serverConfig.isConnected();
 
+// console.log(db.serverConfig);
+
+
+let app = express();
+
+const loggerPath = path.join(__dirname, 'logger');
+var staticPath = path.resolve(__dirname, "static");
+app.use("/images", express.static(staticPath));
+
+
+app.set('json spaces', 3);
 app.use(cors());
 
 app.use(morgan("short"));
@@ -186,8 +186,9 @@ const loggingRequests = fs.createWriteStream(path.join(loggerPath, 'server_logs'
 
 app.use( morgan( 'combined' , { stream: loggingRequests }) );
 
-    
 
-		app.listen(port, () => console.log('listening on port ' + port));
-	})
-	.catch(console.error);
+// http.createServer(app).listen(3000);
+const port = process.env.PORT || 3000;
+app.listen(port, function(){
+    console.log("App is started on :"+port);
+});

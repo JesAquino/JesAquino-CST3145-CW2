@@ -24,6 +24,9 @@
     "fs": "^0.0.1-security",
     "mongodb": "^5.0.1",
     "morgan": "^1.10.0",
-    "nodemon": "^2.0.20"
+    "nodemon": "^2.0.20",
+    "properties": "^1.2.1",
+    "properties-reader": "^2.2.0",
+    "reader": "^0.0.8"
   }
 }
