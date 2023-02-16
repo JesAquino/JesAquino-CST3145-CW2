@@ -1,76 +1,112 @@
 const express = require('express');
 
-const dotenv = require ('dotenv');
+const cors = require('cors');
 
-const cors = require ('cors');
+const dotenv = require('dotenv');
 
 const path = require('path');
 
-const MongoClient = require ('mongodb').MongoClient;
+const MongoClient = require('mongodb').MongoClient;
 
-dotenv.config({
-    path: './config.env',
-})
-
-
-//Create an Express.js instance
 const app = express();
 
-const PORT = process.env.PORT || 5000;
+dotenv.config({
+	path: './config.env',
+});
 
-
-
-//Connecting to the MongoDB
 const uri = process.env.MONGO_URI;
 
-MongoClient.connect(url)
-.then(client=>{
-    console.log('Connected to MongoDB');
+const port = 3000;
 
-    //Selecting the Database and Collections
-    const db = client.db('CW_2');
-    const lesson_information = db.collection('lesson_information');
+MongoClient.connect('mongodb+srv://Jesuael:Password1@cluster0.fpmtkba.mongodb.net/lessons?retryWrites=true&w=majority')
+	.then((client) => {
+		console.log('Connected to MongoDB server');
 
-    
-    app.use(cors())
-    app.use(express.json())
+		const db = client.db('lessondb');
+		const lessons = db.collection('lessons');
 
-    app.listen(PORT,()=>console.log('Server listening in port:'+PORT));
-    })
+		app.use(cors());
+		app.use(express.json());
 
+		app.get('/', (req, res) => {
+			res.send('database conected!'.red);
+		});
 
-    //POST or Creating records for for lesson
-    app.post('lesson_information',(req,res)=>{
-       CW_2.insertOne(req.body)
-       .then(result=>{
-        res.status(201).json({
-            success:true,
-        })
-       })
-        .catch(err=>{
-            res.status(500).json({
-                success:false,
-            })
-        })
-    })
+		// GET to get all lessons from the collection
+		app.get('/lessons', (req, res) => {
+			lessons
+				.find({})
+				.toArray()
+				.then((result) => {
+					res.status(200).json({
+						success: true,
+						data: result,
+					});
+				});
+		});
 
-    //GET for getting all lesson information
-    app.get('/lesson_information', (req, res) => {
-        lesson_information
-        .find({})
-        .toArray()
-        .then((results)=>{
-            res.status(200).json({
-                success:true,
-                data:results,
-            });
-        });
-    })
+        // save lesson into collection
+		app.post('/lessons', (req, res) => {
+			lessons
+				.insertOne(req.body)
+				.then((result) => {
+					res.status(201).json({
+						success: true,
+						data: result,
+					});
+				})
+				.catch((error) => {
+					res.status(500).json({
+						success: false,
+						message: error.message,
+					});
+				});
+		});
 
-    .catch(error=>{
-        console.log(error.mesasge);
-    })
-    
-    
+		// udpate on lesson
+		app.put('/lessons', (req, res) => {
+			lessons
+				.findOneAndUpdate(
+					{ name: req.body.name },
+					{
+						$set: {
+							duration: req.body.duration,
+						},
+					},
+					{ upsert: true }
+				)
+				.then((result) => {
+					res.status(200).json({
+						success: true,
+						data: result,
+					});
+				})
+				.catch((err) => {
+					res.status(500).json({
+						success: false,
+						message: err.message,
+					});
+				});
+		});
 
+		// delete a lesson
 
+		app.delete('/lessons', (req, res) => {
+			lessons
+				.deleteOne({ name: req.body.name })
+				.then((result) => {
+					res.status(200).json({
+						success: true,
+					});
+				})
+				.catch((error) => {
+					res.status(500).json({
+						success: false,
+						message: error.message,
+					});
+				});
+		});
+
+		app.listen(port, () => console.log('listening on port ' + port));
+	})
+	.catch(console.error);
