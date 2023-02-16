@@ -33,157 +33,44 @@ MongoClient.connect('mongodb+srv://Jesuael:Password1@cluster0.fpmtkba.mongodb.ne
         app.use(morgan("short"));
         var fs = require("fs");
 
-		app.get('/', (req, res) => {
-			res.send('database conected!'.red);
-		});
+		const loggerPath = path.join(__dirname, 'logger');
+    var staticPath = path.resolve(__dirname, "static");
+    app.use("/images", express.static(staticPath));
 
-		// GET to get all lessons from the collection
-		app.get('/lessons', (req, res) => {
-			lessons
-				.find({})
-				.toArray()
-				.then((result) => {
-					res.status(200).json({
-						success: true,
-						data: result,
-					});
-				});
-		});
+app.use(cors());
 
-        // GET to get all orders from the collection
-		app.get('/orders', (req, res) => {
-			orders
-				.find({})
-				.toArray()
-				.then((result) => {
-					res.status(200).json({
-						success: true,
-						data: result,
-					});
-				});
-		});
+app.use(morgan("short"));
 
-        // POST for creating new lessons in lesson collection
-		app.post('/lessons', (req, res) => {
-			lessons
-				.insertOne(req.body)
-				.then((result) => {
-					res.status(201).json({
-						success: true,
-						data: result,
-					});
-				})
-				.catch((error) => {
-					res.status(500).json({
-						success: false,
-						message: error.message,
-					});
-				});
-		});
+app.use(express.json());
 
-        // POST for creating new orders in orders collection
-		app.post('/orders', (req, res) => {
-			orders
-				.insertOne(req.body)
-				.then((result) => {
-					res.status(201).json({
-						success: true,
-						data: result,
-					});
-				})
-				.catch((error) => {
-					res.status(500).json({
-						success: false,
-						message: error.message,
-					});
-				});
-		});
-		// PUT to udpate lesson in the collection
-		app.put('/lessons', (req, res) => {
-			lessons
-				.findOneAndUpdate(
-					{ name: req.body.name },
-					{
-						$set: {
-							duration: req.body.duration,
-						},
-					},
-					{ upsert: true }
-				)
-				.then((result) => {
-					res.status(200).json({
-						success: true,
-						data: result,
-					});
-				})
-				.catch((err) => {
-					res.status(500).json({
-						success: false,
-						message: err.message,
-					});
-				});
-		});
-        // PUT to udpate orders in the collection
-		app.put('/orders', (req, res) => {
-			orders
-				.findOneAndUpdate(
-					{ name: req.body.name },
-					{
-						$set: {
-							duration: req.body.duration,
-						},
-					},
-					{ upsert: true }
-				)
-				.then((result) => {
-					res.status(200).json({
-						success: true,
-						data: result,
-					});
-				})
-				.catch((err) => {
-					res.status(500).json({
-						success: false,
-						message: err.message,
-					});
-				});
-		});
-		// DELETE to delete a lesson
+app.param('collectionName', function(req, res, next, collectionName){
+    req.collection = db.collection(collectionName);
+    return next();
+});
 
-		app.delete('/lessons', (req, res) => {
-			lessons
-				.deleteOne({ name: req.body.name })
-				.then((result) => {
-					res.status(200).json({
-						success: true,
-					});
-				})  
-				.catch((error) => {
-					res.status(500).json({
-						success: false,
-						message: error.message,
-					});
-				});
-		});
-        // DELETE to delete an order in the orders collection
-		app.delete('/lessons', (req, res) => {
-			orders
-				.deleteOne({ name: req.body.name })
-				.then((result) => {
-					res.status(200).json({
-						success: true,
-					});
-				})  
-				.catch((error) => {
-					res.status(500).json({
-						success: false,
-						message: error.message,
-					});
-				});
-		});
-        
-        // Search functionality in lessons
-    app.get('/lessons', function(req, res, next){
+
+app.use(function(req, res, next){
+    console.log("Incoming request: " + req.url);
+    next();
+});
+
+app.get("/", function(req, res){
+    res.send("select a collection e.g., /collections/lessons");
+});
+
+
+// All Lessons
+app.get("/collections/:collectionName", function(req, res, next){
+    req.collection.find({}).toArray(function(err, results){
+        if(err){
+            return next(err);
+        }
+        res.send(results);
+    });
+});
+
+// Search Lessons
+app.get("/collections/:collectionName/search/:search", function(req, res, next){
 
     req.collection.find({ subjectName: { $regex: req.params.search, $options: 'i' }}).toArray(function(err, results){
         if(err){
@@ -191,28 +78,116 @@ MongoClient.connect('mongodb+srv://Jesuael:Password1@cluster0.fpmtkba.mongodb.ne
         }
         res.send(results);
     });
-    });
+});
 
-    // /collections/lessons/1:limit/subjectName/desc
-    app.get("lessons/:max/:sortAspect/:sortAscDesc", function(req, res, next){
-        
-        var max = parseInt(req.params.max, 10);
-        
-        let sortDirection = 1;
-        if (req.params.sortAscDesc === "desc"){
-            sortDirection = -1;
+// /collections/lessons/1:limit/subjectName/desc
+app.get("/collections/:collectionName/:max/:sortAspect/:sortAscDesc", function(req, res, next){
+    
+    var max = parseInt(req.params.max, 10);
+    
+    let sortDirection = 1;
+    if (req.params.sortAscDesc === "desc"){
+        sortDirection = -1;
+    }
+
+    req.collection.find({}, {limit: max, sort: [[req.params.sortAspect, sortDirection]]}).toArray(function(err, results){
+        if(err){
+            return next(err);
         }
-
-        req.collection.find({}, 
-            {limit: max, sort: [[req.params.sortAspect, sortDirection]]})
-            .toArray(function(err, results){
-            if(err){
-                return next(err);
-            }
-            res.send(results);
-        });
-
+        res.send(results);
     });
+
+});
+
+// const ObjectId = require('mongodb').ObjectId;
+app.get("/collections/:collectionName/:id", function(req, res, next){
+    
+    var id = parseInt(req.params.id, 10);
+
+    req.collection.findOne({ id: id}, function(err, results){
+    // req.collection.findOne({ id: new ObjectId(req.params.id)}, function(err, results){
+        if(err){
+            return next(err);
+        }
+        res.send(results);
+    });
+});
+
+// Inserting Lesson - Api POST Methods
+app.post("/collections/:collectionName", function(req, res, next){
+    // req.body
+    req.collection.insertOne(req.body, function(err, results){
+    if(err){
+        return next(err);
+    }
+    res.send(results);
+    });
+});
+
+// Delete By new ObjectId(req.params.id) ID - Api
+const ObjectId = require('mongodb').ObjectId;
+app.delete("/collections/:collectionName/:id", function(req, res, next){
+    req.collection.deleteOne(
+        { _id: new ObjectId(req.params.id)}, function(err, result){
+        if(err){
+            return next(err);
+        }else{
+            res.send((result.deletedCount = 1) ? {msg: "success!!"} : {msg: "error"});    
+        }
+    });
+});
+
+// Delete Api
+app.delete("/collections/:collectionName/lesson/:id", function(req, res, next){
+
+    var id = parseInt(req.params.id, 10);
+
+    req.collection.deleteOne(
+        { id: id}, function(err, result){
+        if(err){
+            return next(err);
+        }else{
+            res.send((result.deletedCount = 1) ? {msg: "success!!"} : {msg: "error"});    
+        }
+    });
+});
+
+// Update
+app.put("/collections/:collectionName/:id", function(req, res, next){
+    var id = parseInt(req.params.id, 10);
+    req.collection.updateOne({id: id},
+    {$set: req.body},
+    {safe: true, multi: false}, function(err, result){
+    if(err){
+        return next(err);
+    }
+    res.send((result.matchedCount === 1) ? {msg: "Updated Lesson"} : {msg: "error"});    
+    });
+});
+
+
+app.put("/", function(req, res){
+    res.send("Okay, let's update an element.");
+});
+
+app.delete("/", function(req, res){
+    res.send("Are your sure? to delete an element.");
+});
+
+app.use(function(req, res){
+    res.status(404).send("Resource not found!");
+});
+
+
+
+
+if (!fs.existsSync(loggerPath)) {
+  fs.mkdirSync(loggerPath);
+}
+
+const loggingRequests = fs.createWriteStream(path.join(loggerPath, 'server_logs'), { flags: 'a' });
+
+app.use( morgan( 'combined' , { stream: loggingRequests }) );
 
     
 
