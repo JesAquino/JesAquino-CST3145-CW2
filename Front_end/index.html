@@ -16,7 +16,7 @@
     <script src="lessons.js"></script>
 
     <link rel="stylesheet" href="style.css">
-    <title>CST3145-Coursework 1</title>
+    <title>CST3145-Coursework 2</title>
 </head>
 
 <body>
@@ -27,7 +27,7 @@
         <div class="container mt-5" id="app">
         <div class="row align-content-lg-center">
         <!-- Checkout button -->
-        <button v-on:click="showCheckout" class="btn-checkout btn-primary mt-5 py-2 col-7">{{ cartItemAmount }}<span class="fas fa-cart-plus"></span> Checkout </button>
+        <button v-on:click="showCheckout" v-if="enableCheckout" class="btn-checkout btn-primary mt-5 py-2 col-7">{{ cartItemAmount }}<span class="fas fa-cart-plus"></span> Checkout </button>
              <!-- This will show the lessons -->
              <div v-if="showLesson" class="col-15 col-md-6">
                 <br>                   
@@ -175,143 +175,310 @@
             </div>
             </div>
 
-            <script type="text/javascript">
-                let webstore = new Vue({
-                  el: '#app', // Vue.js app mounting          
+            <script>
+              let webstore = new Vue ({
+                  el: '#app',
                   data: {
-                    lessons: lesson,
-                    showLesson: true,
-                    cart: [],
-                    ascending: true,
-                    search: '',
-                    searchValue: '',          
-                    // This is the toggle for the current sort properties
-                    currentSort: '',      
-                    // Used for storing the specific type of sorting(price, location, etc...)
-                    sortValue: 'subject',
-                    sortClassesBy: '',
-                    // Names to be more specific below:
-                    searchTerm: '',
-                    sortStyle: '',
-                    inCartButton: "Remove",
-                    order: {
-                      first_lastName: '',
-                      phoneNumber: ''
-                    }
+                      sitename: 'Al-Ilm School',
+                      lessons: [],
+                      name: '',
+                      phone: '',
+                      // Stores cart items
+                      cart: [],
+                      showLesson: true,
+                      // Stores user input and selection
+                      sortBy: 'Default',
+                      sortOrder: 'Ascending',
+                      search: '',
+                  },
+      
+                  created: 
+                  function() {
+                      console.log('requesting data from server...')
+      
+                      fetch('http://localhost:3000/lessons').then(
+                          function(response) {
+                              response.json().then(
+                                  function(data) {
+                                      webstore.lessons = data;
+                                      console.log(data);
+                                  }
+                              )
+                          }
+                      )
                   },
                   methods: {
-                    addClass(lesson) {
-                      this.cart.push(lesson.id);
-                    },
-                    showCheckout() {
-                      this.showLesson = this.showLesson ? false : true;
-                    },
-                    canAddClass(lesson) {
-                      return lesson.numberOfSpaces > this.cartCount(lesson.id);
-                    },
-                    cartCount(id) {
-                      let count = 0;
-                      for(let i = 0; i < this.cart.length; i++) {
-                        if(this.cart[i] === id) {
-                          count++;
-                        }
-                      }
-                      return count
-                    },
-
-                    submitForm() {
-                      //to check if form is valid to be submitted
-                      if(this.formValidity) {
-                        alert('Order submitted!')
-                      } 
-                    },
-                    // takeOutFromCart method
-                    takeOutFromCart(lesson) {
-                      let index = this.cart.indexOf(lesson.id);
-                      if (index > -1) {
-                        this.cart.splice(index, 1);
-                      }
-                      lesson.numberOfSpaces + 1; 
-                    },
-                    // showInCart method
-                    showInCart(lesson, id) { 
-                      let cartCount = this.cartCount(id);
-                      if(cartCount >= 0) {
-                        return lesson.name; 
-                      }
-                    },
-                //Only allow Character inputs
-                    isLetter(e) {
-                        let char = String.fromCharCode(e.keyCode);
-                        if (/^[A-Za-z]+$/.test(char)) return true;
-                        else e.preventDefault();
-                        }
-                  },
-
+                      // Submits order
+                      submitOrder() {
+                          let order = {
+                          name: this.name,
+                          phone: this.phone,
+                          lessons: this.cart
+                          }
+                          fetch('http://localhost:3000/orders', {
+                              method: "POST",
+                              body: JSON.stringify(order),
+                              headers: {
+                                  "Content-type": "application/json; charset=UTF-8"
+                              }
+                          })
+                          // .then(response => response.json())
+                          // .then(json_response => {
+                          //     console.log(json_response)
+                          //     // this.update()
+                          // })
+                          // .catch(err => console.log(err))
+                          this.update()
+                          },
+                      // Updates records
+                          update() {
+                              let updatedLesson = []
+                              let updatedSpace = []
+                              // let updatedLessons = []
+                              for (i = 0; i < this.cart.length; i++) {
+                                  for (j = 0; j < this.lessons.length; j++) {
+                                      if (this.cart[i].id == this.lessons[j]._id) {
+                                          updatedLesson.push(this.cart[i].id)
+                                          let item = {}
+                                          item.Space = this.lessons[j].Space
+                                          updatedSpace.push(item)
+                                      }
+                                  }
+                              }
+                              console.log(updatedLesson[0])
+                              console.log(updatedSpace[0])
+                              for (let index = 0; index < updatedLesson.length; index++) {
+                                  let newSpace = (JSON.stringify(updatedSpace[index]))
+                              fetch('http://localhost:3000/lessons/'+ updatedLesson[index], {
+                                  method: "PUT",
+                                  body: newSpace,
+                                  headers: {
+                                      "Content-type": "application/json; charset=UTF-8"
+                                  }
+                              })
+                                  .then(res => res.json())
+                                  .then(res => {
+                                      console.log(res)
+                                  })
+                                  .catch(err => console.log(err))
+                              }
+                              this.cart.splice(0,this.cart.length)
+                              this.name = ''
+                              this.phone = ''
+                          },
+                      // Checks if lesson is already in cart or not
+                      getCartItem(lesson) {
+                          for (i = 0; i < this.cart.length; i++) {
+                              if(this.cart[i].id === lesson._id) {
+                                  return this.cart[i]
+                              }
+                          }
+                          return null
+                      },
+                      // Adds lesson to cart
+                      addToCart (lesson) {
+                          let cartItem = this.getCartItem(lesson);
+                          //If item is already in cart, then increase quantity. If not, push lesson to cart
+                          if (cartItem != null) {
+                              cartItem.quantity++;
+                          } else {
+                              let item = {}
+                              item.id = lesson._id
+                              item.name = lesson.Subject
+                              item.price = lesson.Price
+                              item.quantity = 1
+                              this.cart.push(item);
+                          }
+                          lesson.Space--;
+      
+                      },
+                      // Removes lesson from cart and adds the quantity back to lesson Space
+                      removeItem(item) {
+                          for (i = 0; i < this.lessons.length; i++) {
+                              if(this.lessons[i]._id === item.id) {
+                                  this.lessons[i].Space+=item.quantity
+                                  let itemIndex = this.cart.indexOf(item);
+                                  this.cart.splice(itemIndex, 1);  
+                              }
+                          }  
+                      },
+                      // Removes one space from the item quantity
+                      removeSpace(item) {
+                          if (item.quantity === 1) {
+                              this.removeItem(item)
+                          }
+                          else {
+                              for (i = 0; i < this.lessons.length; i++) {
+                              if(this.lessons[i]._id === item.id) {
+                                  this.lessons[i].Space++
+                                  item.quantity--
+                              }
+                          }
+                          }
+                      // Adds one space from the item quantity  
+                      },
+                      addSpace(item) {
+                          for (i = 0; i < this.lessons.length; i++) {
+                              if(this.lessons[i]._id === item.id) {
+                                  this.lessons[i].Space--
+                                  item.quantity++
+                              }
+                          }
+                      },
+                      // Checkout page toggle
+                      showCheckout: function() {
+                          this.showLesson = this.showLesson? false: true;
+                      },
+                      // Filters lessons based on user input
+                      searchLessons() {
+                          if (this.search.length > 0) {
+                              fetch(`http://localhost:3000/lessons/search/${this.search}`)
+                      .then(res => {
+                          return res.json()
+                      })
+                      .then(data => {
+                          this.lessons = data
+                      })
+                      .catch(err => {
+                          this.lessons = []
+                          console.log(`unable to get lessons: ${err}`)
+                      })
+                          }
+                      },
+                      // Sort Lessons based on user selection
+                      sortLessons() {
+                          if (this.sortBy == 'Default') {
+                              this.lessons.sort((a,b) => {
+                                  if (a.id < b.id) {
+                                      return -1
+                                  }
+                                  if (a.id > b.id) {
+                                      return 1 
+                                  }
+                                  return 0
+                              })
+                          }
+                          else if (this.sortBy == 'Subject' && this.sortOrder == 'Ascending'){
+                              this.lessons.sort((a,b) => {
+                                  let fa = a.Subject.toLowerCase(), fb = b.Subject.toLowerCase()
+                                  if (fa < fb) {
+                                      return -1
+                                  }
+                                  if (fa > fb) {
+                                      return 1 
+                                  }
+                                  return 0
+                              })
+                          }
+                          else if (this.sortBy == 'Subject' && this.sortOrder == 'Descending'){
+                              this.lessons.sort((a,b) => {
+                                  let fa = a.Subject.toLowerCase(), fb = b.Subject.toLowerCase()
+                                  if (fa < fb) {
+                                      return 1
+                                  }
+                                  if (fa > fb) {
+                                      return -1 
+                                  }
+                                  return 0
+                              })
+                          }
+                          else if (this.sortBy == 'Location' && this.sortOrder == 'Ascending'){
+                              this.lessons.sort((a,b) => {
+                                  let fa = a.Location.toLowerCase(), fb = b.Location.toLowerCase()
+                                  if (fa < fb) {
+                                      return -1
+                                  }
+                                  if (fa > fb) {
+                                      return 1 
+                                  }
+                                  return 0
+                              })
+                          }
+                          else if (this.sortBy == 'Location' && this.sortOrder == 'Descending'){
+                              this.lessons.sort((a,b) => {
+                                  let fa = a.Location.toLowerCase(), fb = b.Location.toLowerCase()
                 
-                  // Computed properties 
+                                  if (fa < fb) {
+                                      return 1
+                                  }
+                                  if (fa > fb) {
+                                      return -1 
+                                  }
+                                  return 0
+                              })
+                          }
+                          else if (this.sortBy == 'Price' && this.sortOrder == 'Ascending'){
+                              this.lessons.sort((a,b) => {
+                                  if (a.Price < b.Price) {
+                                      return -1
+                                  }
+                                  if (a.Price > b.Price) {
+                                      return 1 
+                                  }
+                                  return 0
+                              })
+                          }
+                          else if (this.sortBy == 'Price' && this.sortOrder == 'Descending'){
+                              this.lessons.sort((a,b) => {
+                                  if (a.Price < b.Price) {
+                                      return 1
+                                  }
+                                  if (a.Price > b.Price) {
+                                      return -1 
+                                  }
+                                  return 0
+                              })
+                          }
+                          else if (this.sortBy == 'Availability' && this.sortOrder == 'Ascending'){
+                              this.lessons.sort((a,b) => {
+                                  if (a.Space < b.Space) {
+                                      return -1
+                                  }
+                                  if (a.Space > b.Space) {
+                                      return 1 
+                                  }
+                                  return 0
+                              })
+                          }
+                          else if (this.sortBy == 'Availability' && this.sortOrder == 'Descending'){
+                              this.lessons.sort((a,b) => {
+                                  if (a.Space < b.Space) {
+                                      return 1
+                                  }
+                                  if (a.Space > b.Space) {
+                                      return -1 
+                                  }
+                                  return 0
+      
+                              })
+                          }
+                      },
+                  },
                   computed: {
-                    cartItemAmount() {
-                      return this.cart.length || ''
-                    },  
-                    // validation of computed properties
-                    first_lastNameValidity() {
-                        return /^[A-Za-z]+$/.test(this.order.first_lastName);
-                    },
-                    phoneNumberValidity() {
-                      return this.order.phoneNumber
-                    },
-                    formValidity() {
-                      return this.first_lastNameValidity && this.phoneNumberValidity
-                    },
-                    lessonFilter() {
-                      let classSorting = this.lessons
-         // Sort Alphabetically
-                      classSorting = classSorting.sort((a, b) =>{
-                        if (this.sortValue == 'subject') {   
-                          let fa = a.subject.toLowerCase(), fb = b.subject.toLowerCase()
-                          if(fa < fb) { return -1 }
-                          if(fa > fb) { return 1 }
-                          return 0
-                          } else if (this.sortValue == 'location') {
-                            let fa = a.location.toLowerCase(), fb = b.location.toLowerCase()
-
-                          if(fa < fb) { return -1 }
-                          if(fa > fb) { return 1 }
-
-                          } else if (this.sortValue == 'price') {
-                            let fa = a.price, fb = b.price   
-                          if(fa < fb) { return -1 }
-                          if(fa > fb) { return 1 }
-            
-            
-                          } else if (this.sortValue == 'availability') {
-                            let fa = a.numberOfSpaces, fb = b.numberOfSpaces
-                          if(fa < fb) { return -1 }
-                          if(fa > fb) { return 1 }
-                          } 
-                      })
-                    // This will show array in ascending or descending order
-                    if (!this.ascending) {
-                        classSorting.reverse()
-                    }
-                    return classSorting
-              },
-                    lessonFilterBar() {
-                      return this.lessons.filter((lesson) => {
-                      return lesson.subject.toLowerCase().match(this.search.toLowerCase()) || 
-                        lesson.location.toLowerCase().match(this.search.toLowerCase()) 
-                      })
-            
-                    },
-                    cartOfClasses(){
-                      if(lesson.numberOfSpaces > 0) {
-                        return lesson
-                      }
-                    }
-            }
-            })
-    </script>
-
-</body>
-</html>
+                      // Returns number of items in cart
+                      cartItemCount: function(){
+                          return this.cart.length
+                       },
+                       // Checkout button enables when cart lenght is more than 0
+                      enableCheckout: function() {
+                          return this.cart.length > 0
+                       },
+                      // Validates user input using regular expressions
+                      enableSubmit: function() {
+                          let isnum = /^\d+$/.test(this.phone);
+                          let isletter = /^[A-Za-z\s]*$/.test(this.name);
+                          return isnum == true && isletter == true
+                       },
+                      // Calculates total value of cart
+                      subTotal: function() {
+                          let subTotal = 0;
+                          for (let i = 0; i < this.cart.length; i++) {
+                              subTotal += this.cart[i].quantity * this.cart[i].price;
+                          }
+                          return subTotal;
+                          },
+                  }
+              });
+          </script>  
+      </body>
+      </html>

@@ -17,7 +17,7 @@ const loggerPath = path.join(__dirname, 'logger');
 var staticPath = path.resolve(__dirname, "static");
 
 const url = process.env.MONGO_URI;
-
+app.use((express.static("Front_end")));
 const port = 3000;
 
     MongoClient.connect("mongodb+srv://Jesuael:Password1@cluster0.fpmtkba.mongodb.net/?retryWrites=true&w=majority")
@@ -122,8 +122,25 @@ const port = 3000;
                     });
             }
         });
-				
-				
+				// Get Object
+app.get('/collection/:collectionName/:id', (req,res,next)=>{
+    req.collection.findOne({_id: new ObjectID(req.params.id)}, (e,results) => {
+        if (e) return next(e)
+        res.send(results)
+    })
+})
+
+// Update Object
+app.put('/collection/:collectionName/:id', (req,res,next)=>{
+    req.collection.updateOne(
+        {_id: new ObjectID(req.params.id)},
+        {$set: req.body},
+        {safe: true, multi: false},
+        (e,results) => {
+        if (e) return next(e)
+        res.send(results ? {msg: 'sucess'} : {msg: 'error'})
+    })
+})			
       
 // Delete object
 app.delete('/collection/:collectionName/:id', (req,res,next)=>{
@@ -132,6 +149,13 @@ app.delete('/collection/:collectionName/:id', (req,res,next)=>{
         (e,results) => {
         if (e) return next(e)
         res.send(results ? {msg: 'sucess'} : {msg: 'error'})
+    })
+})
+// Add object
+app.post('/collection/:collectionName', (req,res,next) => {
+    req.collection.insertOne(req.body, (e,results) => {
+        if(e) return next(e)
+        res.send(results.ops)
     })
 })
 

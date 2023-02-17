@@ -4,6 +4,7 @@
   "description": "",
   "main": "app.js",
   "scripts": {
+    "build":"tsc",
     "dev": "node app.js"
   },
   "repository": {
