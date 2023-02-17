@@ -26,12 +26,16 @@ let db = client.db(dbName);
 // console.log(db.serverConfig);
 
 
+
+
 let app = express();
 
 const loggerPath = path.join(__dirname, 'logger');
 var staticPath = path.resolve(__dirname, "static");
 app.use("/images", express.static(staticPath));
 
+const lessons = db.collections('lessons');
+const orders = db.collections('orders')
 
 app.set('json spaces', 3);
 app.use(cors());
@@ -57,7 +61,7 @@ app.get("/", function(req, res){
 
 
 // All Lessons
-app.get("/collections/:collectionName", function(req, res, next){
+app.get("/collections/:lessons", function(req, res, next){
     req.collection.find({}).toArray(function(err, results){
         if(err){
             return next(err);
